@@ -3,44 +3,32 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Web;
 using System.Web.Mvc;
+using Vidly.DAL;
 using Vidly.Models;
-using Vidly.ViewModels;
+
 
 namespace Vidly.Controllers
 {
     public class MoviesController : Controller
     {
-        // GET: Movies
-        public ActionResult Random()
+        private VidlyContext _context;
+        public MoviesController()
         {
-            var movie = new Movie() { Name = "Shrek!" };
-            var customers = new List<Customer>
-            {
-                new Customer{Name="CustomerUno"},
-                new Customer{Name="CustomerDuo"}
-            };
-
-            var viewModel = new RandomMovieViewModel
-            {
-                Movie = movie,
-                Customers = customers
-            };
-                return View(viewModel);
+            _context = new VidlyContext();
         }
 
-        [Route("movies/releasd/{year}/{month:regex(\\d{4}):range(1,12)}")]
-
-        public ActionResult ByReleaseDate(int year, int month)
+        protected override void Dispose(bool disposing)
         {
-            return Content(year + "/" + month);
+            _context.Dispose();
         }
+
 
         public ActionResult Edit(int id)
         {
             return Content("id=" + id);
         }
 
-        public ActionResult Index(int? pageIndex, string sortBy)
+        public ViewResult Index(int? pageIndex, string sortBy)
         {
             if (!pageIndex.HasValue)
                 pageIndex = 1;
@@ -48,27 +36,23 @@ namespace Vidly.Controllers
             if (String.IsNullOrWhiteSpace(sortBy))
                 sortBy = "Name";
 
-            var movies = new List<Movie>
-            {
-                new Movie() { Name = "Shrek!" },
-                new Movie() { Name = "Wall-e" }
-            };
+            //var movies = _context.Movies.ToList();
+            var movies = _context.Movies.Include(m => m.Genre).ToList();
 
 
-            var customers = new List<Customer>
-            {
-                new Customer{Name="CustomerUno"},
-                new Customer{Name="CustomerDuo"}
-            };
+            return View(movies);
 
-            var viewModel = new MoviesViewModel
-            {
-                Movies = movies,
-            };
-            return View(viewModel);
+        }
 
+        public ActionResult Details(int id)
+        {
+            var movie = _context.Movies.Include(m => m.Genre).SingleOrDefault(m => m.Id == id);
 
-            //return Content(String.Format("pageIndex={0}&sortBy={1}", pageIndex, sortBy));
+            if (movie == null)
+                return HttpNotFound();
+
+            return View(movie);
+
         }
     }
 }
